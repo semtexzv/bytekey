@@ -86,8 +86,8 @@ use std::{self, i16, i32, i64, i8};
 /// process will only be considered complete once the inner `reader` produces an EOF character.
 #[derive(Debug)]
 pub struct Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     writer: W,
 }
@@ -117,8 +117,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// assert_eq!(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00), serialize(&(42u8, "fizz")).unwrap());
 /// ```
 pub fn serialize<T>(v: &T) -> Result<Vec<u8>>
-where
-    T: Serialize,
+    where
+        T: Serialize,
 {
     let mut bytes = vec![];
     {
@@ -141,17 +141,17 @@ where
 /// assert_eq!(vec![5u8, 10], bytes.clone());
 /// ```
 pub fn serialize_into<W, T>(writer: W, value: &T) -> Result<()>
-where
-    W: Write,
-    T: Serialize,
+    where
+        W: Write,
+        T: Serialize,
 {
     let mut serializer = Serializer::new(writer);
     value.serialize(&mut serializer)
 }
 
 impl<W> Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     /// Creates a new ordered bytes encoder whose output will be written to the provided writer.
     pub fn new(writer: W) -> Serializer<W> {
@@ -218,26 +218,28 @@ where
         } else if val < 1 << 12 {
             self.writer.write_u16::<BE>((val as u16) | 1 << 12)
         } else if val < 1 << 20 {
-            try!(self.writer.write_u8(((val >> 16) as u8) | 2 << 4));
+            self.writer.write_u8(((val >> 16) as u8) | 2 << 4)?;
             self.writer.write_u16::<BE>(val as u16)
         } else if val < 1 << 28 {
             self.writer.write_u32::<BE>((val as u32) | 3 << 28)
         } else if val < 1 << 36 {
-            try!(self.writer.write_u8(((val >> 32) as u8) | 4 << 4));
+            self.writer.write_u8(((val >> 32) as u8) | 4 << 4)?;
             self.writer.write_u32::<BE>(val as u32)
         } else if val < 1 << 44 {
-            try!(self.writer.write_u16::<BE>(((val >> 32) as u16) | 5 << 12));
+            self.writer
+                .write_u16::<BE>(((val >> 32) as u16) | 5 << 12)?;
             self.writer.write_u32::<BE>(val as u32)
         } else if val < 1 << 52 {
-            try!(self.writer.write_u8(((val >> 48) as u8) | 6 << 4));
-            try!(self.writer.write_u16::<BE>((val >> 32) as u16));
+            self.writer.write_u8(((val >> 48) as u8) | 6 << 4)?;
+            self.writer.write_u16::<BE>((val >> 32) as u16)?;
             self.writer.write_u32::<BE>(val as u32)
         } else if val < 1 << 60 {
             self.writer.write_u64::<BE>((val as u64) | 7 << 60)
         } else {
-            try!(self.writer.write_u8(8 << 4));
+            self.writer.write_u8(8 << 4)?;
             self.writer.write_u64::<BE>(val)
-        }.map_err(From::from)
+        }
+            .map_err(From::from)
     }
 
     /// Encode an `i64` into a variable number of bytes.
@@ -320,37 +322,38 @@ where
             self.writer.write_u16::<BE>(masked as u16)
         } else if val < 1 << 19 {
             let masked = (val | (0x12 << 19)) ^ mask;
-            try!(self.writer.write_u8((masked >> 16) as u8));
+            self.writer.write_u8((masked >> 16) as u8)?;
             self.writer.write_u16::<BE>(masked as u16)
         } else if val < 1 << 27 {
             let masked = (val | (0x13 << 27)) ^ mask;
             self.writer.write_u32::<BE>(masked as u32)
         } else if val < 1 << 35 {
             let masked = (val | (0x14 << 35)) ^ mask;
-            try!(self.writer.write_u8((masked >> 32) as u8));
+            self.writer.write_u8((masked >> 32) as u8)?;
             self.writer.write_u32::<BE>(masked as u32)
         } else if val < 1 << 43 {
             let masked = (val | (0x15 << 43)) ^ mask;
-            try!(self.writer.write_u16::<BE>((masked >> 32) as u16));
+            self.writer.write_u16::<BE>((masked >> 32) as u16)?;
             self.writer.write_u32::<BE>(masked as u32)
         } else if val < 1 << 51 {
             let masked = (val | (0x16 << 51)) ^ mask;
-            try!(self.writer.write_u8((masked >> 48) as u8));
-            try!(self.writer.write_u16::<BE>((masked >> 32) as u16));
+            self.writer.write_u8((masked >> 48) as u8)?;
+            self.writer.write_u16::<BE>((masked >> 32) as u16)?;
             self.writer.write_u32::<BE>(masked as u32)
         } else if val < 1 << 59 {
             let masked = (val | (0x17 << 59)) ^ mask;
             self.writer.write_u64::<BE>(masked as u64)
         } else {
-            try!(self.writer.write_u8((0x18 << 3) ^ mask as u8));
+            self.writer.write_u8((0x18 << 3) ^ mask as u8)?;
             self.writer.write_u64::<BE>(val ^ mask)
-        }.map_err(From::from)
+        }
+            .map_err(From::from)
     }
 }
 
 impl<'a, W> serde::Serializer for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
@@ -456,8 +459,8 @@ where
     }
 
     fn serialize_some<T>(self, v: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         self.writer.write_u8(1)?;
         v.serialize(self)
@@ -482,8 +485,8 @@ where
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(self)
     }
@@ -495,8 +498,8 @@ where
         _variant: &'static str,
         value: &T,
     ) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         self.writer.write_u32::<BE>(variant_index)?;
         value.serialize(self)
@@ -552,15 +555,15 @@ where
 // Compound Implementations.
 
 impl<'a, W> serde::ser::SerializeSeq for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -571,15 +574,15 @@ where
 }
 
 impl<'a, W> serde::ser::SerializeTuple for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -590,15 +593,15 @@ where
 }
 
 impl<'a, W> serde::ser::SerializeTupleStruct for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -609,15 +612,15 @@ where
 }
 
 impl<'a, W> serde::ser::SerializeTupleVariant for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -628,22 +631,22 @@ where
 }
 
 impl<'a, W> serde::ser::SerializeMap for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         key.serialize(&mut **self)
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -654,15 +657,15 @@ where
 }
 
 impl<'a, W> serde::ser::SerializeStruct for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -673,15 +676,15 @@ where
 }
 
 impl<'a, W> serde::ser::SerializeStructVariant for &'a mut Serializer<W>
-where
-    W: Write,
+    where
+        W: Write,
 {
     type Ok = ();
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
+        where
+            T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)
     }
@@ -701,22 +704,18 @@ impl From<io::Error> for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+        write!(f, "{}", match *self {
+            Error::Message(ref msg) => msg,
+            Error::Io(ref err) => err.description(),
+        })
     }
 }
 
 impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Message(ref msg) => msg,
-            Error::Io(ref err) => err.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&StdError> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
             Error::Message(ref _msg) => None,
-            Error::Io(ref err) => err.cause(),
+            Error::Io(ref err) => err.source(),
         }
     }
 }

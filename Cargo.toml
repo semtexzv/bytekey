@@ -1,17 +1,18 @@
 [package]
-name = "bytekey"
-version = "0.4.2"
-authors = ["Dan Burkert <dan@danburkert.com>"]
+name = "bytekey-fix"
+version = "0.5.0"
+authors = ["Michal Hornicky <mhornick@redhat.com>", "Dan Burkert <dan@danburkert.com>"]
 license = "Apache-2.0"
 description = "lexicographic sort-order preserving binary encoding"
-repository = "https://github.com/danburkert/bytekey.git"
+repository = "https://github.com/semtexzv/bytekey.git"
 readme = "README.md"
 keywords = ["encoding", "serialization", "library"]
+edition = "2018"
 
 [dependencies]
 byteorder = "1"
 serde = "1"
-utf-8 = "0.7"
+utf-8 = "0.7.5"
 
 [dev-dependencies]
 rand = "0.5"

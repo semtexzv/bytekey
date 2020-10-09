@@ -40,8 +40,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// assert_eq!(42usize, deserialize::<usize>(&bytes).unwrap());
 /// ```
 pub fn deserialize<T>(bytes: &[u8]) -> Result<T>
-where
-    T: for<'de> Deserialize<'de>,
+    where
+        T: for<'de> Deserialize<'de>,
 {
     deserialize_from(bytes)
 }
@@ -57,9 +57,9 @@ where
 /// assert_eq!(42u64, result);
 /// ```
 pub fn deserialize_from<R, T>(reader: R) -> Result<T>
-where
-    R: io::BufRead,
-    T: for<'de> Deserialize<'de>,
+    where
+        R: io::BufRead,
+        T: for<'de> Deserialize<'de>,
 {
     let mut deserializer = Deserializer::new(reader);
     T::deserialize(&mut deserializer)
@@ -73,11 +73,11 @@ impl<R: io::Read> Deserializer<R> {
 
     /// Deserialize a `u64` that has been serialized using the `serialize_var_u64` method.
     pub fn deserialize_var_u64(&mut self) -> Result<u64> {
-        let header = try!(self.reader.read_u8());
+        let header = self.reader.read_u8()?;
         let n = header >> 4;
         let (mut val, _) = ((header & 0x0F) as u64).overflowing_shl(n as u32 * 8);
         for i in 1..n + 1 {
-            let byte = try!(self.reader.read_u8());
+            let byte = self.reader.read_u8()?;
             val += (byte as u64) << ((n - i) * 8);
         }
         Ok(val)
@@ -85,12 +85,12 @@ impl<R: io::Read> Deserializer<R> {
 
     /// Deserialize an `i64` that has been serialized using the `serialize_var_i64` method.
     pub fn deserialize_var_i64(&mut self) -> Result<i64> {
-        let header = try!(self.reader.read_u8());
+        let header = self.reader.read_u8()?;
         let mask = ((header ^ 0x80) as i8 >> 7) as u8;
         let n = ((header >> 3) ^ mask) & 0x0F;
         let (mut val, _) = (((header ^ mask) & 0x07) as u64).overflowing_shl(n as u32 * 8);
         for i in 1..n + 1 {
-            let byte = try!(self.reader.read_u8());
+            let byte = self.reader.read_u8()?;
             val += ((byte ^ mask) as u64) << ((n - i) * 8);
         }
         let final_mask = (((mask as i64) << 63) >> 63) as u64;
@@ -100,21 +100,21 @@ impl<R: io::Read> Deserializer<R> {
 }
 
 impl<'de, 'a, R> serde::de::Deserializer<'de> for &'a mut Deserializer<R>
-where
-    R: io::BufRead,
+    where
+        R: io::BufRead,
 {
     type Error = Error;
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         Err(Error::DeserializeAnyUnsupported)
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let b = match self.reader.read_u8()? {
             0 => false,
@@ -124,72 +124,72 @@ where
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let i = self.reader.read_i8()?;
         visitor.visit_i8(i ^ i8::MIN)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let i = self.reader.read_i16::<BE>()?;
         visitor.visit_i16(i ^ i16::MIN)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let i = self.reader.read_i32::<BE>()?;
         visitor.visit_i32(i ^ i32::MIN)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let i = self.reader.read_i64::<BE>()?;
         visitor.visit_i64(i ^ i64::MIN)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let u = self.reader.read_u8()?;
         visitor.visit_u8(u)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let u = self.reader.read_u16::<BE>()?;
         visitor.visit_u16(u)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let u = self.reader.read_u32::<BE>()?;
         visitor.visit_u32(u)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let u = self.reader.read_u64::<BE>()?;
         visitor.visit_u64(u)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let val = self.reader.read_i32::<BE>()?;
         let t = ((val ^ i32::MIN) >> 31) | i32::MIN;
@@ -198,8 +198,8 @@ where
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let val = self.reader.read_i64::<BE>()?;
         let t = ((val ^ i64::MIN) >> 63) | i64::MIN;
@@ -208,8 +208,8 @@ where
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let mut utf8_decoder = utf8::BufReadDecoder::new(&mut self.reader);
         match utf8_decoder.next_strict() {
@@ -223,8 +223,8 @@ where
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let mut string = String::new();
         let mut utf8_decoder = utf8::BufReadDecoder::new(&mut self.reader);
@@ -251,15 +251,15 @@ where
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         let mut bytes = vec![];
         for byte in (&mut self.reader).bytes() {
@@ -269,15 +269,15 @@ where
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         self.deserialize_bytes(visitor)
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         match self.reader.read_u8()? {
             0 => visitor.visit_none(),
@@ -290,46 +290,46 @@ where
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         visitor.visit_unit()
     }
 
     fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         visitor.visit_unit()
     }
 
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         struct Access<'a, R>
-        where
-            R: 'a + io::BufRead,
+            where
+                R: 'a + io::BufRead,
         {
             deserializer: &'a mut Deserializer<R>,
         }
 
         impl<'de, 'a, R> serde::de::SeqAccess<'de> for Access<'a, R>
-        where
-            R: io::BufRead,
+            where
+                R: io::BufRead,
         {
             type Error = Error;
 
             fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-            where
-                T: serde::de::DeserializeSeed<'de>,
+                where
+                    T: serde::de::DeserializeSeed<'de>,
             {
                 match serde::de::DeserializeSeed::deserialize(seed, &mut *self.deserializer) {
                     Ok(v) => Ok(Some(v)),
@@ -345,26 +345,26 @@ where
     }
 
     fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         struct Access<'a, R>
-        where
-            R: 'a + io::BufRead,
+            where
+                R: 'a + io::BufRead,
         {
             deserializer: &'a mut Deserializer<R>,
             len: usize,
         }
 
         impl<'de, 'a, R> serde::de::SeqAccess<'de> for Access<'a, R>
-        where
-            R: io::BufRead,
+            where
+                R: io::BufRead,
         {
             type Error = Error;
 
             fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-            where
-                T: serde::de::DeserializeSeed<'de>,
+                where
+                    T: serde::de::DeserializeSeed<'de>,
             {
                 if self.len == 0 {
                     return Ok(None);
@@ -391,32 +391,32 @@ where
         len: usize,
         visitor: V,
     ) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         self.deserialize_tuple(len, visitor)
     }
 
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         struct Access<'a, R>
-        where
-            R: 'a + io::BufRead,
+            where
+                R: 'a + io::BufRead,
         {
             deserializer: &'a mut Deserializer<R>,
         }
 
         impl<'de, 'a, R> serde::de::MapAccess<'de> for Access<'a, R>
-        where
-            R: io::BufRead,
+            where
+                R: io::BufRead,
         {
             type Error = Error;
 
             fn next_key_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-            where
-                T: serde::de::DeserializeSeed<'de>,
+                where
+                    T: serde::de::DeserializeSeed<'de>,
             {
                 match serde::de::DeserializeSeed::deserialize(seed, &mut *self.deserializer) {
                     Ok(v) => Ok(Some(v)),
@@ -428,8 +428,8 @@ where
             }
 
             fn next_value_seed<T>(&mut self, seed: T) -> Result<T::Value>
-            where
-                T: serde::de::DeserializeSeed<'de>,
+                where
+                    T: serde::de::DeserializeSeed<'de>,
             {
                 serde::de::DeserializeSeed::deserialize(seed, &mut *self.deserializer)
             }
@@ -444,8 +444,8 @@ where
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         self.deserialize_tuple(fields.len(), visitor)
     }
@@ -456,19 +456,19 @@ where
         _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+        where
+            V: Visitor<'de>,
     {
         impl<'de, 'a, R> serde::de::EnumAccess<'de> for &'a mut Deserializer<R>
-        where
-            R: io::BufRead,
+            where
+                R: io::BufRead,
         {
             type Error = Error;
             type Variant = Self;
 
             fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
-            where
-                V: serde::de::DeserializeSeed<'de>,
+                where
+                    V: serde::de::DeserializeSeed<'de>,
             {
                 let idx: u32 = serde::de::Deserialize::deserialize(&mut *self)?;
                 let val: Result<_> =
@@ -478,8 +478,8 @@ where
         }
 
         impl<'de, 'a, R> serde::de::VariantAccess<'de> for &'a mut Deserializer<R>
-        where
-            R: io::BufRead,
+            where
+                R: io::BufRead,
         {
             type Error = Error;
 
@@ -488,15 +488,15 @@ where
             }
 
             fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
-            where
-                T: serde::de::DeserializeSeed<'de>,
+                where
+                    T: serde::de::DeserializeSeed<'de>,
             {
                 serde::de::DeserializeSeed::deserialize(seed, self)
             }
 
             fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value>
-            where
-                V: serde::de::Visitor<'de>,
+                where
+                    V: serde::de::Visitor<'de>,
             {
                 serde::de::Deserializer::deserialize_tuple(self, len, visitor)
             }
@@ -506,8 +506,8 @@ where
                 fields: &'static [&'static str],
                 visitor: V,
             ) -> Result<V::Value>
-            where
-                V: serde::de::Visitor<'de>,
+                where
+                    V: serde::de::Visitor<'de>,
             {
                 serde::de::Deserializer::deserialize_tuple(self, fields.len(), visitor)
             }
@@ -517,15 +517,15 @@ where
     }
 
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: serde::de::Visitor<'de>,
+        where
+            V: serde::de::Visitor<'de>,
     {
         Err(Error::DeserializeAnyUnsupported)
     }
 
     fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value>
-    where
-        V: serde::de::Visitor<'de>,
+        where
+            V: serde::de::Visitor<'de>,
     {
         Err(Error::DeserializeAnyUnsupported)
     }
@@ -545,22 +545,18 @@ impl From<io::Error> for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
-    }
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
+        write!(f, "{}", match *self {
             Error::DeserializeAnyUnsupported => "`bytekey` is not a self-describing format",
             Error::UnexpectedEof => "encountered unexpected EOF when deserializing utf8",
             Error::InvalidUtf8 => "attempted to deserialize invalid utf8",
             Error::Io(ref err) => err.description(),
             Error::Message(ref msg) => msg,
-        }
+        })
     }
+}
 
-    fn cause(&self) -> Option<&StdError> {
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
             Error::DeserializeAnyUnsupported => None,
             Error::UnexpectedEof => None,

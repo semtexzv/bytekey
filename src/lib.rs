@@ -64,8 +64,8 @@ extern crate utf8;
 pub mod de;
 pub mod ser;
 
-pub use de::{deserialize, deserialize_from, Deserializer};
-pub use ser::{serialize, serialize_into, Serializer};
+pub use crate::de::{deserialize, deserialize_from, Deserializer};
+pub use crate::ser::{serialize, serialize_into, Serializer};
 use std::error::Error as StdError;
 use std::{fmt, result};
 
@@ -93,19 +93,19 @@ impl From<de::Error> for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+        write!(f, "{}", self.source().unwrap())
     }
 }
 
 impl StdError for Error {
-    fn description(&self) -> &str {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
-            Error::Serialize(ref err) => err.description(),
-            Error::Deserialize(ref err) => err.description(),
+            Error::Serialize(ref err) => Some(err),
+            Error::Deserialize(ref err) => Some(err),
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             Error::Serialize(ref err) => Some(err),
             Error::Deserialize(ref err) => Some(err),
