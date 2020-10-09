@@ -2,6 +2,7 @@
 
 [rustdoc](https://danburkert.github.io/bytekey/bytekey/index.html)
 
+[Unmaintained original package](https://github.com/mitchmindtree/bytekey)
 # bytekey
 
 Binary encoding for Rust values which preserves lexicographic sort order.
